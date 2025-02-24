@@ -12,7 +12,7 @@ class BasicOptimizer:
 
 
 class RMSProp:
-    def __init__(self, learning_rate, beta=0.9, epsilon=1e-6):
+    def __init__(self, learning_rate=0.01, beta=0.9, epsilon=1e-7):
         self.learning_rate = learning_rate
         self.beta = beta
         self.epsilon = epsilon
@@ -22,6 +22,10 @@ class RMSProp:
         #return NotImplementedError
         for param, grad in zip(trainable_params, grads):
             key = id(param)  # identify the parameter uniquely
+
+            if isinstance(self.mean_square[key], int):
+                self.v[key] = np.zeros_like(param)
+
             # update v
             self.v[key] = self.beta * self.v[key] + (1 - self.beta) * (grad ** 2)
             # update param
@@ -31,7 +35,7 @@ class RMSProp:
 
 class Adam:
     def __init__(
-        self, learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-7, amsgrad=False
+        self, learning_rate=0.3, beta_1=0.9, beta_2=0.999, epsilon=1e-7, amsgrad=False
     ):
 
 
@@ -51,6 +55,10 @@ class Adam:
         self.t += 1  # increment time step
         for param, grad in zip(trainable_params, grads):
             key = id(param)
+
+            if isinstance(self.m[key], int):
+                self.m[key] = np.zeros_like(param)
+                self.v[key] = np.zeros_like(param)
             
             # update first moment
             self.m[key] = self.beta_1 * self.m[key] + (1 - self.beta_1) * grad
