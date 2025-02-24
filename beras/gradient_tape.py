@@ -40,3 +40,55 @@ class GradientTape:
 
         # What tensor and what gradient is for you to implement!
         # compose_input_gradients and compose_weight_gradients are methods that will be helpful
+        grads[id(target)] = [None]
+
+        # BFS or DFS: pop from queue, backtrack to layer inputs/weights
+        while queue:
+            out_tensor = queue.pop(0)
+            layer = self.previous_layers[id(out_tensor)]
+            if layer is None:
+                # This tensor was not produced by a Diffable layer (maybe it's an input or constant)
+                continue
+
+            # Upstream gradients for `out_tensor`
+            upstream_jacobians = grads[id(out_tensor)]
+
+            # Compose with layer's input jacobians
+            in_jac = layer.compose_input_gradients(upstream_jacobians)
+            # For each input, accumulate the partial grads
+            for inp, partial_grad in zip(layer.inputs, in_jac):
+                if partial_grad is None:
+                    continue
+                if grads[id(inp)] is None:
+                    grads[id(inp)] = [partial_grad]
+                    queue.append(inp)  # We'll push inputs into queue to propagate further
+                else:
+                    grads[id(inp)].append(partial_grad)
+
+            # Compose with layer's weight jacobians
+            w_jac = layer.compose_weight_gradients(upstream_jacobians)
+            for weight, partial_grad in zip(layer.weights, w_jac):
+                if partial_grad is None:
+                    continue
+                if grads[id(weight)] is None:
+                    grads[id(weight)] = [partial_grad]
+                else:
+                    grads[id(weight)].append(partial_grad)
+            # We typically don't push weights into queue because weights generally don't have "previous layers."
+
+        # Now we have a dictionary grads: { id(tensor): [grad_array_1, grad_array_2, ...] }
+        # We sum them up for each id, then return them in the order of 'sources'.
+        final_grads = []
+        for src in sources:
+            partials = grads[id(src)]
+            if partials is None:
+                # Means no gradient found => default to zeros of same shape as src
+                final_grads.append(Tensor.zeros_like(src))
+            else:
+                # sum up all partial grads in partials
+                accum = partials[0]
+                for pg in partials[1:]:
+                    accum = accum + pg
+                final_grads.append(accum)
+
+        return final_grads

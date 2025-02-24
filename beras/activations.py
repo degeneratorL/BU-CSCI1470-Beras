@@ -21,7 +21,7 @@ class LeakyReLU(Activation):
 
     def forward(self, x) -> Tensor:
         """Leaky ReLu forward propagation!"""
-        return NotImplementedError
+        return np.where(x > 0, x, self.alpha * x).astype(x.dtype) #NotImplementedError
 
     def get_input_gradients(self) -> list[Tensor]:
         """
@@ -29,7 +29,11 @@ class LeakyReLU(Activation):
         To see what methods/variables you have access to, refer to the cheat sheet.
         Hint: Make sure not to mutate any instance variables. Return a new list[tensor(s)]
         """
-        raise NotImplementedError
+        x = self.inputs[0]   # shape: (batch_size, d1, d2, ...) 
+        grad = np.where(x > 0, 1.0, self.alpha).astype(x.dtype)
+        # 如果要求 x == 0 时梯度 = 0
+        grad[x == 0] = 0.0
+        return [grad]
 
     def compose_input_gradients(self, J):
         return self.get_input_gradients()[0] * J
@@ -48,14 +52,17 @@ class Sigmoid(Activation):
     ## TODO: Implement for default output activation to bind output to 0-1
     
     def forward(self, x) -> Tensor:
-        raise NotImplementedError
+        return 1.0 / (1.0 + np.exp(-x))
+        #raise NotImplementedError
 
     def get_input_gradients(self) -> list[Tensor]:
         """
         To see what methods/variables you have access to, refer to the cheat sheet.
         Hint: Make sure not to mutate any instance variables. Return a new list[tensor(s)]
         """
-        raise NotImplementedError
+        x, y = self.inputs[0], self.outputs[0]  
+        grad = y * (1.0 - y)   # shape matches x,y
+        return [grad]
 
     def compose_input_gradients(self, J):
         return self.get_input_gradients()[0] * J
@@ -74,7 +81,10 @@ class Softmax(Activation):
 
         ## HINT: Use stable softmax, which subtracts maximum from
         ## all entries to prevent overflow/underflow issues
-        raise NotImplementedError
+        shiftx = x - np.max(x, axis=-1, keepdims=True)   # for numerical stability
+        exps = np.exp(shiftx)
+        sums = np.sum(exps, axis=-1, keepdims=True)
+        return exps / sums
 
     def get_input_gradients(self):
         """Softmax input gradients!"""
@@ -83,4 +93,9 @@ class Softmax(Activation):
         grad = np.zeros(shape=(bn, n, n), dtype=x.dtype)
         
         # TODO: Implement softmax gradient
-        raise NotImplementedError
+        for i in range(bn):
+            # y[i] is shape (n,)
+            # derivative = diag(y[i]) - outer(y[i], y[i])
+            yi = y[i]
+            grad[i] = np.diag(yi) - np.outer(yi, yi)
+        return [grad]

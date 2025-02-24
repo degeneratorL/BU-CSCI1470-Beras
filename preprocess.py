@@ -11,3 +11,19 @@ def load_and_preprocess_data() -> tuple[Tensor, Tensor, Tensor, Tensor]:
     
     #Load in the training and testing data from the MNIST dataset
     (train_inputs, train_labels), (test_inputs, test_labels) = datasets.mnist.load_data()
+
+    # 1) Normalize pixel values to [0,1]
+    train_inputs = train_inputs.astype(np.float32) / 255.0
+    test_inputs  = test_inputs.astype(np.float32) / 255.0
+
+    # 2) Flatten images: (batch_size, 28, 28) => (batch_size, 784)
+    train_inputs = train_inputs.reshape(train_inputs.shape[0], -1)
+    test_inputs  = test_inputs.reshape(test_inputs.shape[0], -1)
+
+    # 3) Convert to Tensors
+    train_inputs = Tensor(train_inputs)
+    test_inputs  = Tensor(test_inputs)
+    train_labels = Tensor(train_labels)
+    test_labels  = Tensor(test_labels)
+
+    return train_inputs, train_labels, test_inputs, test_labels

@@ -11,38 +11,72 @@ import numpy as np
 from beras.model import SequentialModel
 
 def get_model():
+    """
+    Task 1:
+    Create a SequentialModel with the layers you want.
+    For MNIST (28*28 = 784 features) -> 10 classes is typical.
+    We'll do:
+      Dense(784, 128), ReLU,
+      Dense(128, 10),  Softmax
+    """
     model = SequentialModel(
         [
-           # Add in your layers here as elements of the list!
-           # e.g. Dense(10, 10),
+            Dense(784, 128, initializer="xavier"),  # or "kaiming"/"normal"
+            ReLU(),
+            Dense(128, 10, initializer="xavier"),
+            Softmax()
         ]
     )
     return model
 
 def get_optimizer():
-    # choose an optimizer, initialize it and return it!
-    return ...
+    """
+    Task 2:
+    Choose an optimizer. We'll use Adam with a certain learning rate.
+    """
+    return Adam(learning_rate=0.001)
 
 def get_loss_fn():
-    # choose a loss function, initialize it and return it!
-    return ...
+    """
+    Task 3:
+    Choose a loss function.
+    We'll use CategoricalCrossEntropy for classification.
+    """
+    return CategoricalCrossEntropy()
 
 def get_acc_fn():
-    # choose an accuracy metric, initialize it and return it!
-    return ...
+    """
+    Task 4:
+    Choose an accuracy metric. We'll use CategoricalAccuracy.
+    """
+    return CategoricalAccuracy()
 
 if __name__ == '__main__':
 
-    ### Use this area to test your implementation!
-
     # 1. Create a SequentialModel using get_model
+    model = get_model()
 
     # 2. Compile the model with optimizer, loss function, and accuracy metric
-    
-    # 3. Load and preprocess the data
-    
-    # 4. Train the model
+    optimizer = get_optimizer()
+    loss_fn = get_loss_fn()
+    acc_fn = get_acc_fn()
+    model.compile(optimizer, loss_fn, acc_fn)
 
-    # 5. Evaluate the model
-    
-    
+    # 3. Load and preprocess the data (flatten + normalize -> Tensors)
+    train_inputs, train_labels, test_inputs, test_labels = load_and_preprocess_data()
+
+    # Convert labels to one-hot
+    # For classification, we want labels as one-hot encoded
+    encoder = OneHotEncoder()
+    train_labels_onehot = encoder(train_labels)  # shape: (num_train_samples, 10)
+    test_labels_onehot  = encoder(test_labels)   # shape: (num_test_samples, 10)
+
+    # 4. Train the model
+    EPOCHS = 10
+    BATCH_SIZE = 32
+    history = model.fit(train_inputs, train_labels_onehot, epochs=EPOCHS, batch_size=BATCH_SIZE)
+    print("\nTraining history:", history)
+
+    # 5. Evaluate the model on test set
+    eval_stats = model.evaluate(test_inputs, test_labels_onehot, batch_size=BATCH_SIZE)
+    print("\nFinal Evaluation on Test Data:", eval_stats)
