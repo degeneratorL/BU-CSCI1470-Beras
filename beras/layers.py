@@ -12,7 +12,7 @@ class Dense(Diffable):
 
     @property
     def weights(self) -> list[Tensor]:
-        return self.w, self.b
+        return [self.w, self.b]
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -21,9 +21,7 @@ class Dense(Diffable):
         return x @ self.w + self.b  # (batch_size, output_size)NotImplementedError
 
     def get_input_gradients(self) -> list[Tensor]:
-        grad_x = np.sum(self.w, axis=1)  # or w.sum(axis=1)
-    # 包装成 Variable / Tensor
-        return [Variable(grad_x)]
+        return [self.w] 
         # For a dense layer f(x)=x@w + b, partial f wrt x = w  (shape: (input_size, output_size)) NotImplementedError
 
     def get_weight_gradients(self) -> list[Tensor]:
