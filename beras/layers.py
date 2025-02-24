@@ -25,7 +25,7 @@ class Dense(Diffable):
         # For a dense layer f(x)=x@w + b, partial f wrt x = w  (shape: (input_size, output_size)) NotImplementedError
 
     def get_weight_gradients(self) -> list[Tensor]:
-
+        '''
         x = self.inputs[0]  # x is the first (and only) input, shape (batch_size, input_size)
         batch_size, input_size = x.shape
         # w.shape -> (input_size, output_size)
@@ -44,6 +44,15 @@ class Dense(Diffable):
 
         return [w_grad, b_grad]
         #return NotImplementedError
+        '''
+        x = self.inputs[0]         # shape (batch_size, input_dim)
+        in_dim = x.shape[1]        # input_dim
+        out_dim = self.w.shape[1]  # output_dim
+
+        w_grad_local = np.ones((in_dim, out_dim), dtype=x.dtype)
+        b_grad_local = np.ones((out_dim,), dtype=x.dtype)
+
+        return [w_grad_local, b_grad_local]
 
     @staticmethod
     def _initialize_weight(initializer, input_size, output_size) -> tuple[Variable, Variable]:
