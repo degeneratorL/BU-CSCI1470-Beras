@@ -12,12 +12,14 @@ class Dense(Diffable):
 
     @property
     def weights(self) -> list[Tensor]:
-        return [self.w, self.b]
+        return self.w, self.b
 
     def forward(self, x: Tensor) -> Tensor:
         """
         Forward pass for a dense layer! Refer to lecture slides for how this is computed.
         """
+        if x.ndim == 1:
+            x = x[None, :]
         return x @ self.w + self.b  # (batch_size, output_size)NotImplementedError
 
     def get_input_gradients(self) -> list[Tensor]:
@@ -25,34 +27,32 @@ class Dense(Diffable):
         # For a dense layer f(x)=x@w + b, partial f wrt x = w  (shape: (input_size, output_size)) NotImplementedError
 
     def get_weight_gradients(self) -> list[Tensor]:
-        '''
-        x = self.inputs[0]  # x is the first (and only) input, shape (batch_size, input_size)
-        batch_size, input_size = x.shape
-        # w.shape -> (input_size, output_size)
-        output_size = self.w.shape[1]
+        x = self.inputs[0]
+        out_dim = self.w.shape[1]
 
-        # partial f / partial w -> (batch_size, input_size, output_size)
-        # For each sample i, row k, col j => x[i, k]
-        w_grad = np.zeros((batch_size, input_size, output_size), dtype=x.dtype)
-        for i in range(batch_size):
-            # outer product x[i] with a vector of ones for the output dimension
-            w_grad[i] = np.outer(x[i], np.ones(output_size, dtype=x.dtype))
+        if x.ndim == 1:
+            # x.shape = (n,)
+            n = x.shape[0]
+            w_grad = np.zeros((n, out_dim), dtype=x.dtype)
+            for j in range(out_dim):
+                w_grad[:, j] = x
+            
+            b_grad = np.ones((out_dim,), dtype=x.dtype)
 
-        # partial f / partial b -> (batch_size, output_size)
-        # For each sample i, it's all ones along output dimension
-        b_grad = np.ones((batch_size, output_size), dtype=x.dtype)
+            return [w_grad, b_grad]
 
-        return [w_grad, b_grad]
-        #return NotImplementedError
-        '''
-        x = self.inputs[0]         # shape (batch_size, input_dim)
-        in_dim = x.shape[1]        # input_dim
-        out_dim = self.w.shape[1]  # output_dim
+        else:
+            # x.shape = (batch_size, n)
+            batch_size, n = x.shape
 
-        w_grad_local = np.ones((in_dim, out_dim), dtype=x.dtype)
-        b_grad_local = np.ones((out_dim,), dtype=x.dtype)
+            w_grad = np.zeros((batch_size, n, out_dim), dtype=x.dtype)
+            for i in range(batch_size):
+                for j in range(out_dim):
+                    w_grad[i, :, j] = x[i]
+            
+            b_grad = np.ones((out_dim, ), dtype=x.dtype)
 
-        return [w_grad_local, b_grad_local]
+            return [w_grad, b_grad]
 
     @staticmethod
     def _initialize_weight(initializer, input_size, output_size) -> tuple[Variable, Variable]:
