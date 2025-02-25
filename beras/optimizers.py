@@ -1,61 +1,67 @@
 from collections import defaultdict
 import numpy as np
 
+"""
+TODO: Implement all the apply_gradients for the 3 optimizers:
+    - BasicOptimizer
+    - RMSProp
+    - Adam
+"""
+
 class BasicOptimizer:
-    def __init__(self, learning_rate=0.01):
+    """
+    This class represents a basic optimizer which simply applies the scaled gradients to the weights.
+
+    TODO: Roadmap 5.
+        - apply_gradients 
+    """
+    def __init__(self, learning_rate):
         self.learning_rate = learning_rate
 
-    def apply_gradients(self, trainable_params, grads):
-        for param, grad in zip(trainable_params, grads):
-            new_value = param - self.learning_rate * grad
-            param.assign(new_value)
+    def apply_gradients(self, weights, grads):
+        """
+        given weights and grads, scale and then apply the gradients to (only trainable) weights
+        You can assume that grads[i] is the gradient for weights[i]
+
+        weights: the weights in the model we are training
+        grads: the gradients ot those weights
+        return: None
+        """
+        for i in range(len(weights)):
+            if not weights[i].trainable: continue
+            weights[i] -= self.learning_rate * grads[i]
 
 
 class RMSProp:
-    """
-    修正：将 mean_square -> v, 并保证在第一次见到 param 时初始化为 zeros_like(param).
-    默认超参:
-        learning_rate=0.01
-        beta=0.9
-        epsilon=1e-7
-    """
     def __init__(self, learning_rate, beta=0.9, epsilon=1e-6):
         self.learning_rate = learning_rate
         self.beta = beta
         self.epsilon = epsilon
-        self.v = defaultdict(lambda: None)  # 存储二阶梯度的指数平滑
+        self.v = defaultdict(lambda: 0)
 
     def apply_gradients(self, weights, grads):
+        ## Implement RMSProp optimization
         for i, (weight, grad) in enumerate(zip(weights, grads)):
             self.v[i] = self.beta * self.v[i] + (1-self.beta) * (grad) ** 2
             weights[i] -= ((self.learning_rate) / ((self.v[i]) ** (1/2) + self.epsilon) * grad)
 
 
 class Adam:
-    """
-    修正: 
-    1) 避免过大的 learning_rate(原本0.3比较罕见, 
-       如测试期望更小LR可改 0.001~0.01).
-    2) 第一次见到 param 时, 初始化 m, v.
-    默认超参:
-        learning_rate=0.001
-        beta_1=0.9, beta_2=0.999
-        epsilon=1e-7
-    """
     def __init__(
         self, learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-7, amsgrad=False
     ):
+        self.amsgrad = amsgrad
+
         self.learning_rate = learning_rate
         self.beta_1 = beta_1
         self.beta_2 = beta_2
         self.epsilon = epsilon
-        self.amsgrad = amsgrad
 
-        self.m = defaultdict(lambda: None)  # 一阶动量
-        self.v = defaultdict(lambda: None)  # 二阶动量
+        self.m = defaultdict(lambda: 0)         # First moment zero vector
+        self.v = defaultdict(lambda: 0)         # Second moment zero vector.
         self.m_hat = defaultdict(lambda: 0)     # Expected value of first moment vector
         self.v_hat = defaultdict(lambda: 0)     # Expected value of second moment vector
-        self.t = 0                           # 时间步
+        self.t = 0                              # Time counter
 
     def apply_gradients(self, weights, grads):
         self.t += 1
