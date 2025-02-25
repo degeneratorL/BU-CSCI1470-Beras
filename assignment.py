@@ -34,7 +34,7 @@ def get_optimizer():
     Task 2:
     Choose an optimizer. We'll use Adam with a certain learning rate.
     """
-    return Adam(learning_rate=0.001)
+    return Adam(learning_rate=0.01)
 
 def get_loss_fn():
     """
@@ -71,9 +71,9 @@ if __name__ == '__main__':
     train_labels_onehot = encoder(train_labels)  # shape: (num_train_samples, 10)
     test_labels_onehot  = encoder(test_labels)   # shape: (num_test_samples, 10)
 
-    # 4. Train the model
+    # 4. Train the mode
     EPOCHS = 10
-    BATCH_SIZE = 32
+    BATCH_SIZE = 256
     history = model.fit(train_inputs, train_labels_onehot, epochs=EPOCHS, batch_size=BATCH_SIZE)
     print("\nTraining history:", history)
 

@@ -113,18 +113,14 @@ class Model(Diffable):
 
         return metrics_history
 
-    def evaluate(self, x: Tensor, y: Union[Tensor, np.ndarray], batch_size: int):
-        """
-        X is the dataset inputs, Y is the dataset labels.
-        Evaluates the model by iterating over the input dataset in batches and feeding input batches
-        into the batch_step method. At the end, the metrics are returned. Should be called on
-        the testing set to evaluate accuracy of the model using the metrics output from the fit method.
+    def evaluate(self, x: Tensor, y: Tensor, batch_size: int = 32):
+   
+        from collections import defaultdict
+        import numpy as np
 
-        NOTE: This method is almost identical to fit (think about how training and testing differ --
-        the core logic should be the same)
-        """
-        num_samples = x.shape[0]
         eval_stats = defaultdict(list)
+        all_preds = []
+        num_samples = x.shape[0]
         num_batches = (num_samples + batch_size - 1) // batch_size
 
         for batch_i in range(num_batches):
@@ -133,17 +129,28 @@ class Model(Diffable):
             x_batch = x[start:end]
             y_batch = y[start:end]
 
-            step_metrics = self.batch_step(x_batch, y_batch, training=False)
+        # now we get BOTH the dict and the predictions
+            step_metrics, y_pred = self.batch_step(x_batch, y_batch, training=False)
             for k, v in step_metrics.items():
                 eval_stats[k].append(v)
+        
+            all_preds.append(y_pred)  # collect predictions for this batch
 
-            # optional: print each batch's stats
-            print_stats(eval_stats, batch_i, num_batches, None, avg=False)
-
-        # final average across all batches
-        print_stats(eval_stats, None, None, None, avg=True)
+    # Compute final average metrics
         final_metrics = {k: float(np.mean(v)) for k, v in eval_stats.items()}
+
+    # OPTIONAL: If you want, you can save predictions here:
+    # 1. Concatenate all predictions
+        final_preds = np.concatenate(all_preds, axis=0)  # shape: (num_samples, out_dim)
+    # 2. If classification, you might do argmax
+    # final_preds = np.argmax(final_preds, axis=1)
+
+    # 3. Save to .npy
+        np.save("predictions.npy", final_preds)
+        print("Saved predictions to predictions.npy!")
+
         return final_metrics
+
 
     def get_input_gradients(self) -> list[Tensor]:
         return super().get_input_gradients()
@@ -186,5 +193,9 @@ class SequentialModel(Model):
             # 反向传播: 计算梯度并更新权重
             grads = tape.gradient(loss_val, self.weights)
             self.optimizer.apply_gradients(self.weights, grads)
+            return {"loss": float(loss_val), "acc": float(acc_val)}
+        else:
+        # Return both metrics dict and raw predictions
+            return {"loss": float(loss_val), "acc": float(acc_val)}, y_pred
 
-        return {"loss": float(loss_val), "acc": float(acc_val)}
+        
